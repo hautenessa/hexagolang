@@ -232,30 +232,41 @@ func TestVertices(t *testing.T) {
 	plan := []struct {
 		lay Layout
 		a   H
-		v   []image.Point
+		v   []F
 	}{
 		{MakeLayout(10, image.Point{0, 0}, OrientationPointy), H{0, 0},
-			[]image.Point{
-				image.Point{8, 5}, image.Point{0, 10}, image.Point{-8, 4},
-				image.Point{-8, -5}, image.Point{0, -10}, image.Point{8, -4},
+			[]F{
+				F{8.6603, 5}, F{0, 10}, F{-8.6603, 5},
+				F{-8.6603, -5}, F{0, -10}, F{8.6603, -5},
+				F{0, 0},
 			},
 		},
 		{MakeLayout(20, image.Point{0, 0}, OrientationPointy), H{0, 0},
-			[]image.Point{
-				image.Point{17, 10}, image.Point{0, 20}, image.Point{-17, 9},
-				image.Point{-17, -10}, image.Point{0, -20}, image.Point{17, -9},
+			[]F{
+				F{17.3205, 10}, F{0, 20}, F{-17.3205, 10},
+				F{-17.3205, -10}, F{0, -20}, F{17.3205, -10},
+				F{0, 0},
 			},
 		},
 		{MakeLayout(10, image.Point{0, 0}, OrientationFlat), H{3, -2},
-			[]image.Point{
-				image.Point{55, -8}, image.Point{49, 0}, image.Point{40, 0},
-				image.Point{35, -8}, image.Point{41, -16}, image.Point{50, -16},
+			[]F{
+				F{55, -8.6603}, F{50, 0}, F{40, 0},
+				F{35, -8.6603}, F{40, -17.3205}, F{50, -17.3205},
+				F{45, -8.6603},
+			},
+		},
+		{MakeLayout(10, image.Point{0, 0}, OrientationFlat), H{3, -1},
+			[]F{
+				F{55, 8.6603}, F{50, 17.3205}, F{40, 17.3205},
+				F{35, 8.6603}, F{40, 0}, F{50, 0},
+				F{45, 8.6603},
 			},
 		},
 		{MakeLayout(20, image.Point{40, 40}, OrientationPointy), H{4, 6},
-			[]image.Point{
-				image.Point{299, 230}, image.Point{282, 240}, image.Point{265, 229},
-				image.Point{265, 210}, image.Point{282, 200}, image.Point{299, 211},
+			[]F{
+				F{299.8076, 230}, F{282.4871, 240}, F{265.1666, 230},
+				F{265.1666, 210}, F{282.4871, 200}, F{299.8076, 210},
+				F{282.4871, 220},
 			},
 		},
 	}
@@ -263,9 +274,37 @@ func TestVertices(t *testing.T) {
 	for tc, params := range plan {
 		result := params.lay.Vertices(params.a)
 		for k := range result {
-			if result[k] != params.v[k] {
-				t.Errorf("index %d: vertex %d expected %+v, got %+v", tc, k, result[k], params.v[k])
+			deltaX := result[k].X - params.v[k].X
+			deltaY := result[k].Y - params.v[k].Y
+			if -0.0001 > deltaX || deltaX > 0.0001 || -0.0001 > deltaY || deltaY > 0.0001 {
+				t.Errorf("index %d: vertex %d expected %+v, got %+v", tc, k, params.v[k], result[k])
 				t.Logf("\t%#v", result)
+			}
+		}
+	}
+
+	plan2 := []struct {
+		lay    Layout
+		a, b   H
+		va, vb int
+	}{
+		{MakeLayout(32, image.Point{}, OrientationPointy), H{0, 0}, H{1, 0}, 0, 2},
+		{MakeLayout(32, image.Point{}, OrientationPointy), H{1, 0}, H{2, 0}, 0, 2},
+		{MakeLayout(32, image.Point{}, OrientationPointy), H{2, 0}, H{3, 0}, 0, 2},
+		{MakeLayout(32, image.Point{}, OrientationFlat), H{0, 0}, H{1, 0}, 0, 4},
+		{MakeLayout(32, image.Point{}, OrientationFlat), H{1, 0}, H{2, 0}, 0, 4},
+		{MakeLayout(32, image.Point{}, OrientationFlat), H{2, 0}, H{3, 0}, 0, 4},
+	}
+
+	for tc, params := range plan2 {
+		r1, r2 := params.lay.Vertices(params.a), params.lay.Vertices(params.b)
+		deltaX := r1[params.va].X - r2[params.vb].X
+		deltaY := r1[params.va].Y - r2[params.vb].Y
+		if -0.0001 > deltaX || deltaX > 0.0001 || -0.0001 > deltaY || deltaY > 0.0001 {
+			t.Errorf("index %d: vertex %v doesn't equal matching neighbor vertex %v", tc, r1[params.va], r2[params.vb])
+			t.Logf("\t%+v vs %+v", r1, r2)
+			for k := range r1 {
+				t.Logf("%d: %f - %f == %f, %f", k, r2[k], r1[k], r2[k].X-r1[k].X, r2[k].Y-r1[k].Y)
 			}
 		}
 	}

@@ -353,6 +353,11 @@ var (
 	}
 )
 
+// F represents a floating point point, used for polygon drawing functions.
+type F struct {
+	X, Y float64
+}
+
 // Layout is the layout of the hex grid.
 type Layout struct {
 	size   image.Point
@@ -369,7 +374,7 @@ func MakeLayout(hexSize int, originCenter image.Point, orientation Orientation) 
 	}
 }
 
-// CenterFor returns the point at the center of the hex based on the layout.
+// CenterFor returns the point at the center (as an int) of the hex based on the layout.
 func (l Layout) CenterFor(h H) image.Point {
 	q, r :=
 		float64(h.Q),
@@ -377,6 +382,16 @@ func (l Layout) CenterFor(h H) image.Point {
 	x := (l.m.f[0]*q + l.m.f[1]*r) * float64(l.size.X)
 	y := (l.m.f[2]*q + l.m.f[3]*r) * float64(l.size.Y)
 	return image.Point{int(x) + l.origin.X, int(y) + l.origin.Y}
+}
+
+// CntrFor returns the point at the center (as a float) of the hex based on the layout.
+func (l Layout) CntrFor(h H) F {
+	q, r :=
+		float64(h.Q),
+		float64(h.R)
+	x := (l.m.f[0]*q + l.m.f[1]*r) * float64(l.size.X)
+	y := (l.m.f[2]*q + l.m.f[3]*r) * float64(l.size.Y)
+	return F{x + float64(l.origin.X), y + float64(l.origin.Y)}
 }
 
 // TopLeftFor returns the point at the top left of the hex based on the layout.
@@ -453,15 +468,16 @@ func (l Layout) AreaFor(center H, rad int) map[H]bool {
 }
 
 // Vertices returns the location of all verticies for a given hexagon.
-func (l Layout) Vertices(h H) []image.Point {
-	result := make([]image.Point, 6)
-	center := l.CenterFor(h)
+func (l Layout) Vertices(h H) []F {
+	result := make([]F, 6, 7)
+	center := l.CntrFor(h)
 	for k := range result {
-		result[k] = image.Point{
-			center.X + int(float64(l.size.X)*l.m.c[k]),
-			center.Y + int(float64(l.size.Y)*l.m.s[k]),
+		result[k] = F{
+			X: center.X + float64(l.size.X)*l.m.c[k],
+			Y: center.Y + float64(l.size.Y)*l.m.s[k],
 		}
 	}
+	result = append(result, center)
 	return result
 }
 
