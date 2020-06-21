@@ -147,9 +147,9 @@ const (
 )
 
 var neighbors = []D{
-	D{1, 0, -1}, D{1, -1, 0}, D{0, -1, 1}, // positive
-	D{-1, 0, 1}, D{-1, 1, 0}, D{0, 1, -1}, // negative
-	D{}, // undefined
+	{1, 0, -1}, {1, -1, 0}, {0, -1, 1}, // positive
+	{-1, 0, 1}, {-1, 1, 0}, {0, 1, -1}, // negative
+	{}, // undefined
 }
 
 // NeighborDelta returns the delta required to move a single hex in a direction.
@@ -192,9 +192,9 @@ const (
 )
 
 var diagonals = []D{
-	D{2, -1, -1}, D{1, -2, 1}, D{-1, -1, 2}, // positive
-	D{-2, 1, 1}, D{-1, 2, -1}, D{1, 1, -2}, // negative
-	D{}, // undefined
+	{2, -1, -1}, {1, -2, 1}, {-1, -1, 2}, // positive
+	{-2, 1, 1}, {-1, 2, -1}, {1, 1, -2}, // negative
+	{}, // undefined
 }
 
 // DiagonalDelta returns the delta required to move a single hex in a direction.
@@ -204,21 +204,25 @@ func DiagonalDelta(d DirectionEnum) D {
 
 // Line gets the hexagons on a line between two hex.
 func Line(a, b H) []H {
-	n := Length(Subtract(a, b))
+	delta := Subtract(a, b)
+	n := Length(delta)
+	dir := Direction(delta)
+
 	results := make([]H, 0, n)
 	visited := make(map[H]bool, n)
 	ax, ay, az := a.Float()
 	bx, by, bz := b.Float()
 	x, y, z := bx-ax, by-ay, bz-az
 
-	step := 1. / float64(n+1)
+	step := 1. / float64(n)
 	for h := 0; h <= n; h++ {
 		t := step * float64(h)
 		pnt := unfloat(ax+x*t, ay+y*t, az+z*t)
-		if !visited[pnt] {
-			results = append(results, pnt)
-			visited[pnt] = true
+		for visited[pnt] {
+			pnt = pnt.Neighbor(dir)
 		}
+		results = append(results, pnt)
+		visited[pnt] = true
 	}
 	if !visited[b] {
 		results = append(results, b)
@@ -436,14 +440,14 @@ func (l Layout) RingFor(center H, rad int) map[H]bool {
 		}
 
 		points = []image.Point{
-			image.Point{pxl.X + cp.X, pxl.Y + cp.Y},
-			image.Point{-pxl.X + cp.X, pxl.Y + cp.Y},
-			image.Point{pxl.X + cp.X, -pxl.Y + cp.Y},
-			image.Point{-pxl.X + cp.X, -pxl.Y + cp.Y},
-			image.Point{pxl.Y + cp.X, pxl.X + cp.Y},
-			image.Point{-pxl.Y + cp.X, pxl.X + cp.Y},
-			image.Point{pxl.Y + cp.X, -pxl.X + cp.Y},
-			image.Point{-pxl.Y + cp.X, -pxl.X + cp.Y},
+			{pxl.X + cp.X, pxl.Y + cp.Y},
+			{-pxl.X + cp.X, pxl.Y + cp.Y},
+			{pxl.X + cp.X, -pxl.Y + cp.Y},
+			{-pxl.X + cp.X, -pxl.Y + cp.Y},
+			{pxl.Y + cp.X, pxl.X + cp.Y},
+			{-pxl.Y + cp.X, pxl.X + cp.Y},
+			{pxl.Y + cp.X, -pxl.X + cp.Y},
+			{-pxl.Y + cp.X, -pxl.X + cp.Y},
 		}
 		for _, v := range points {
 			result[l.HexFor(v)] = true
