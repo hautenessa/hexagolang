@@ -108,10 +108,10 @@ func TestRadius(t *testing.T) {
 	}
 	// This will get expanded when I support skewed grids.
 	for k, expected := range plan {
-		if result := expected.l.Radius(); expected.r != result.X {
+		if result := expected.l.Radius; expected.r != result.X {
 			t.Errorf("index %d: expected X %d, got %d", k, expected.r, result)
 		}
-		if result := expected.l.Radius(); expected.r != result.Y {
+		if result := expected.l.Radius; expected.r != result.Y {
 			t.Errorf("index %d: expected Y %d, got %d", k, expected.r, result)
 		}
 	}
