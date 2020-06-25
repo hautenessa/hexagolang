@@ -398,14 +398,6 @@ func (l Layout) CntrFor(h H) F {
 	return F{x + float64(l.Origin.X), y + float64(l.Origin.Y)}
 }
 
-// TopLeftFor returns the point at the top left of the hex based on the layout.
-func (l Layout) TopLeftFor(h H) image.Point {
-	p := l.CenterFor(h)
-	p.X -= l.Radius.X
-	p.Y -= l.Radius.Y
-	return p
-}
-
 // HexFor an image.Point returns the Hex around a screen point.
 func (l Layout) HexFor(p image.Point) H {
 	x, y :=

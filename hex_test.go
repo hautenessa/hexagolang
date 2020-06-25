@@ -11,13 +11,17 @@ import (
 func TestScreenConversion(t *testing.T) {
 	layout := MakeLayout(10, image.Point{0, 0}, OrientationFlat)
 	plan := []struct {
-		hp  H
-		ip  image.Point
-		tlp image.Point
+		hp H
+		ip image.Point
+		fp F
 	}{
-		{H{0, 0}, image.Point{0, 0}, image.Point{-10, -10}},
-		{H{2, -1}, image.Point{30, 0}, image.Point{20, -10}},
-		{H{-2, 4}, image.Point{-30, 51}, image.Point{-40, 41}},
+		{H{0, 0}, image.Point{0, 0}, F{-10, -10}},
+		{H{2, -1}, image.Point{30, 0}, F{20, -10}},
+		{H{-2, 4}, image.Point{-30, 51}, F{-40, 41}},
+	}
+
+	cmpF := func(a, b F) bool {
+		return a.X+0.0001 > b.X && a.X-0.0001 < b.X && a.Y+0.0001 > b.Y && a.Y-0.0001 < b.Y
 	}
 
 	for _, expected := range plan {
@@ -29,9 +33,9 @@ func TestScreenConversion(t *testing.T) {
 			t.Errorf("image %+v hex for expected %+v, got %+v.",
 				expected.ip, expected.hp, result)
 		}
-		if result := layout.TopLeftFor(expected.hp); expected.tlp != result {
-			t.Errorf("hex %+v pixel topleft expected %+v, got %+v.",
-				expected.hp, expected.tlp, result)
+		if result := layout.CntrFor(expected.hp); cmpF(expected.fp, result) {
+			t.Errorf("hex %+v pixel cntr expected %+v, got %+v.",
+				expected.hp, expected.fp, result)
 		}
 	}
 }
