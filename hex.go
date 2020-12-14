@@ -362,54 +362,92 @@ type F struct {
 	X, Y float64
 }
 
+// Add adds b to F.
+func (a F) Add(b F) F {
+	return F{
+		X: a.X + b.X,
+		Y: a.Y + b.Y,
+	}
+}
+
+// Subtract subtracts b from F
+func (a F) Subtract(b F) F {
+	return F{
+		X: a.X - b.X,
+		Y: a.Y - b.Y,
+	}
+}
+
+// Multiply multiplies F by b
+func (a F) Multiply(b F) F {
+	return F{
+		X: a.X * b.X,
+		Y: a.Y * b.Y,
+	}
+}
+
+// Divide divides F by b.
+func (a F) Divide(b F) F {
+	return F{
+		X: a.X / b.X,
+		Y: a.Y / b.Y,
+	}
+}
+
+// AsPoint makes a point from an F value
+func AsPoint(f F) image.Point {
+	return image.Point{
+		X: int(f.X + 0.5),
+		Y: int(f.Y + 0.5),
+	}
+}
+
+// FromPoint makes an F from a point value
+func FromPoint(p image.Point) F {
+	return F{
+		X: float64(p.X),
+		Y: float64(p.Y),
+	}
+}
+
 // Layout is the layout of the hex grid.
 type Layout struct {
-	Radius image.Point // Radius is the radius of the hexagon; supports stretching on X or Y.
-	Origin image.Point // Origin is the where the center of H{0, 0} will be displayed.
+	Radius F // Radius is the radius of the hexagon; supports stretching on X or Y.
+	Origin F // Origin is the where the center of H{0, 0} will be displayed.
 	m      Orientation
 }
 
 // MakeLayout for rendering on the screen.
-func MakeLayout(hexSize int, originCenter image.Point, orientation Orientation) Layout {
+func MakeLayout(hexSize F, originCenter F, orientation Orientation) Layout {
 	return Layout{
-		Radius: image.Point{hexSize, hexSize},
+		Radius: hexSize,
 		Origin: originCenter,
 		m:      orientation,
 	}
 }
 
-// CenterFor returns the point at the center (as an int) of the hex based on the layout.
-func (l Layout) CenterFor(h H) image.Point {
+// CenterFor returns the point at the center (as a float) of the hex based on the layout.
+func (l Layout) CenterFor(h H) F {
 	q, r :=
 		float64(h.Q),
 		float64(h.R)
-	x := (l.m.f[0]*q + l.m.f[1]*r) * float64(l.Radius.X)
-	y := (l.m.f[2]*q + l.m.f[3]*r) * float64(l.Radius.Y)
-	return image.Point{int(x) + l.Origin.X, int(y) + l.Origin.Y}
+	x := (l.m.f[0]*q + l.m.f[1]*r) * l.Radius.X
+	y := (l.m.f[2]*q + l.m.f[3]*r) * l.Radius.Y
+	return F{x + l.Origin.X, y + l.Origin.Y}
 }
 
-// CntrFor returns the point at the center (as a float) of the hex based on the layout.
-func (l Layout) CntrFor(h H) F {
-	q, r :=
-		float64(h.Q),
-		float64(h.R)
-	x := (l.m.f[0]*q + l.m.f[1]*r) * float64(l.Radius.X)
-	y := (l.m.f[2]*q + l.m.f[3]*r) * float64(l.Radius.Y)
-	return F{x + float64(l.Origin.X), y + float64(l.Origin.Y)}
-}
-
-// HexFor an image.Point returns the Hex around a screen point.
-func (l Layout) HexFor(p image.Point) H {
+// HexFor for a hex.F that represents a point where things are laid out.
+func (l Layout) HexFor(f F) H {
 	x, y :=
-		float64(p.X-l.Origin.X),
-		float64(p.Y-l.Origin.Y)
-	q := (l.m.b[0]*x + l.m.b[1]*y) / float64(l.Radius.X)
-	r := (l.m.b[2]*x + l.m.b[3]*y) / float64(l.Radius.Y)
+		f.X-l.Origin.X,
+		f.Y-l.Origin.Y
+	q := (l.m.b[0]*x + l.m.b[1]*y) / l.Radius.X
+	r := (l.m.b[2]*x + l.m.b[3]*y) / l.Radius.Y
 	return unfloat(q, -q-r, r)
 }
 
 // RingFor returns a set of hex within rad pixel distance of center.
-func (l Layout) RingFor(center H, rad int) map[H]bool {
+func (l Layout) RingFor(center H, rad float64) map[H]bool {
 	result := make(map[H]bool, 1)
 	if rad < l.Radius.X && rad < l.Radius.Y {
 		result[center] = true
@@ -417,8 +455,7 @@ func (l Layout) RingFor(center H, rad int) map[H]bool {
 	}
 	cp := l.CenterFor(center)
 	P := 1 - rad
-	pxl := image.Point{rad, 0}
-	points := []image.Point{}
+	pxl := F{rad, 0}
 	for ; pxl.X > pxl.Y; pxl.Y++ {
 		if P <= 0 {
 			P = P + 2*pxl.Y + 1
@@ -431,7 +468,7 @@ func (l Layout) RingFor(center H, rad int) map[H]bool {
 			break
 		}
 
-		points = []image.Point{
+		points := []F{
 			{pxl.X + cp.X, pxl.Y + cp.Y},
 			{-pxl.X + cp.X, pxl.Y + cp.Y},
 			{pxl.X + cp.X, -pxl.Y + cp.Y},
@@ -449,7 +486,7 @@ func (l Layout) RingFor(center H, rad int) map[H]bool {
 }
 
 // AreaFor returns all hex in the area of a screen circle.
-func (l Layout) AreaFor(center H, rad int) map[H]bool {
+func (l Layout) AreaFor(center H, rad float64) map[H]bool {
 	loop := l.RingFor(center, rad)
 	result := make(map[H]bool)
 	for k, v := range loop {
@@ -466,7 +503,7 @@ func (l Layout) AreaFor(center H, rad int) map[H]bool {
 // Vertices returns the location of all verticies for a given hexagon.
 func (l Layout) Vertices(h H) []F {
 	result := make([]F, 6, 7)
-	center := l.CntrFor(h)
+	center := l.CenterFor(h)
 	for k := range result {
 		result[k] = F{
 			X: center.X + float64(l.Radius.X)*l.m.c[k],

@@ -1,7 +1,6 @@
 package hexagolang
 
 import (
-	"image"
 	"testing"
 )
 
@@ -9,15 +8,14 @@ import (
 // I need to translate between hex coordinates and screen coordinates.
 // Rational, the grid will be displayed on the screen and the user interacts with the screen.
 func TestScreenConversion(t *testing.T) {
-	layout := MakeLayout(10, image.Point{0, 0}, OrientationFlat)
+	layout := MakeLayout(F{10, 10}, F{0, 0}, OrientationFlat)
 	plan := []struct {
 		hp H
-		ip image.Point
 		fp F
 	}{
-		{H{0, 0}, image.Point{0, 0}, F{-10, -10}},
-		{H{2, -1}, image.Point{30, 0}, F{20, -10}},
-		{H{-2, 4}, image.Point{-30, 51}, F{-40, 41}},
+		{H{-1, 0}, F{-10, -10}},
+		{H{1, -1}, F{20, -10}},
+		{H{-3, 4}, F{-40, 41}},
 	}
 
 	cmpF := func(a, b F) bool {
@@ -25,15 +23,11 @@ func TestScreenConversion(t *testing.T) {
 	}
 
 	for _, expected := range plan {
-		if result := layout.CenterFor(expected.hp); expected.ip != result {
-			t.Errorf("hex %+v pixel center expected %+v, got %+v.",
-				expected.hp, expected.ip, result)
-		}
-		if result := layout.HexFor(expected.ip); expected.hp != result {
+		if result := layout.HexFor(expected.fp); expected.hp != result {
 			t.Errorf("image %+v hex for expected %+v, got %+v.",
-				expected.ip, expected.hp, result)
+				expected.fp, expected.hp, result)
 		}
-		if result := layout.CntrFor(expected.hp); cmpF(expected.fp, result) {
+		if result := layout.CenterFor(expected.hp); cmpF(expected.fp, result) {
 			t.Errorf("hex %+v pixel cntr expected %+v, got %+v.",
 				expected.hp, expected.fp, result)
 		}
@@ -43,38 +37,47 @@ func TestScreenConversion(t *testing.T) {
 // I need to know the set of hex within a screen distance from a hex.
 // Rational, I'd like to use circules instead of Hexagons for the larger areas.
 func TestRadiusFor(t *testing.T) {
-	layout1, layout2 := MakeLayout(10, image.Point{0, 0}, OrientationFlat),
-		MakeLayout(100, image.Point{0, 0}, OrientationPointy)
+	layout := MakeLayout(F{10, 10}, F{0, 0}, OrientationFlat)
 	plan := []struct {
 		lay    Layout
 		center H
-		rad    int
+		rad    float64
 		pos    []H
 		neg    []H
 	}{
-		{layout1, H{0, 0}, -1,
+		{layout, H{0, 0}, -1,
 			[]H{{0, 0}},
 			[]H{{1, 0}},
 		},
-		{layout1, H{0, 0}, 0,
+		{layout, H{0, 0}, 0,
 			[]H{{0, 0}},
 			[]H{{1, 0}},
 		},
-		{layout1, H{0, 0}, 1,
+		{layout, H{0, 0}, 1,
 			[]H{{0, 0}},
 			[]H{{1, 0}},
 		},
-		{layout1, H{0, 0}, 11,
+		{layout, H{0, 0}, 11,
 			[]H{{-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}},
 			[]H{{0, 0}, {1, 1}, {1, 2}},
 		},
-		{layout2, H{200, 200}, 500,
+		{layout, H{20, 20}, 200,
 			[]H{
-				{196, 202}, {197, 200}, {197, 201}, {197, 202}, {197, 203}, {198, 198},
-				{198, 199}, {198, 203}, {199, 198}, {199, 203}, {200, 197}, {200, 203},
-				{201, 197}, {201, 202}, {202, 197}, {202, 201}, {203, 197}, {203, 198},
-				{203, 199}, {203, 200}},
-			[]H{{1, 0}, {200, 200}},
+				{Q: 21, R: 31}, {Q: 17, R: 10}, {Q: 32, R: 19}, {Q: 11, R: 16}, {Q: 30, R: 8}, {Q: 33, R: 10},
+				{Q: 9, R: 32}, {Q: 23, R: 30}, {Q: 33, R: 12}, {Q: 24, R: 29}, {Q: 33, R: 11}, {Q: 14, R: 33},
+				{Q: 8, R: 21}, {Q: 10, R: 33}, {Q: 7, R: 25}, {Q: 27, R: 7}, {Q: 30, R: 23}, {Q: 10, R: 17},
+				{Q: 33, R: 15}, {Q: 26, R: 27}, {Q: 15, R: 12}, {Q: 12, R: 33}, {Q: 25, R: 7}, {Q: 28, R: 25},
+				{Q: 22, R: 30}, {Q: 29, R: 7}, {Q: 17, R: 33}, {Q: 30, R: 7}, {Q: 31, R: 8}, {Q: 7, R: 28},
+				{Q: 32, R: 10}, {Q: 7, R: 30}, {Q: 24, R: 7}, {Q: 33, R: 16}, {Q: 18, R: 32}, {Q: 33, R: 17},
+				{Q: 7, R: 24}, {Q: 22, R: 8}, {Q: 12, R: 15}, {Q: 32, R: 20}, {Q: 26, R: 7}, {Q: 15, R: 33},
+				{Q: 23, R: 7}, {Q: 21, R: 8}, {Q: 33, R: 14}, {Q: 20, R: 8}, {Q: 19, R: 9}, {Q: 13, R: 33},
+				{Q: 9, R: 19}, {Q: 11, R: 33}, {Q: 33, R: 13}, {Q: 16, R: 11}, {Q: 8, R: 20}, {Q: 32, R: 18},
+				{Q: 7, R: 23}, {Q: 28, R: 7}, {Q: 7, R: 26}, {Q: 32, R: 8}, {Q: 27, R: 26}, {Q: 8, R: 30},
+				{Q: 30, R: 22}, {Q: 8, R: 32}, {Q: 25, R: 28}, {Q: 10, R: 32}, {Q: 19, R: 32}, {Q: 13, R: 14},
+				{Q: 7, R: 27}, {Q: 7, R: 29}, {Q: 8, R: 22}, {Q: 10, R: 18}, {Q: 29, R: 24}, {Q: 14, R: 13},
+				{Q: 8, R: 31}, {Q: 32, R: 9}, {Q: 18, R: 10}, {Q: 31, R: 21}, {Q: 16, R: 33}, {Q: 20, R: 32},
+			},
+			[]H{{1, 0}, {200, 200}, {20, 20}},
 		},
 	}
 
@@ -104,19 +107,19 @@ func TestRadiusFor(t *testing.T) {
 func TestRadius(t *testing.T) {
 	plan := []struct {
 		l Layout
-		r int
+		r float64
 	}{
-		{MakeLayout(10, image.Point{0, 0}, OrientationPointy), 10},
-		{MakeLayout(100, image.Point{0, 0}, OrientationFlat), 100},
-		{MakeLayout(1000, image.Point{10, 10}, OrientationPointy), 1000},
+		{MakeLayout(F{10, 10}, F{0, 0}, OrientationPointy), 10},
+		{MakeLayout(F{100, 100}, F{0, 0}, OrientationFlat), 100},
+		{MakeLayout(F{1000, 1000}, F{10, 10}, OrientationPointy), 1000},
 	}
 	// This will get expanded when I support skewed grids.
 	for k, expected := range plan {
 		if result := expected.l.Radius; expected.r != result.X {
-			t.Errorf("index %d: expected X %d, got %d", k, expected.r, result)
+			t.Errorf("index %d: expected X %f, got %f", k, expected.r, result)
 		}
 		if result := expected.l.Radius; expected.r != result.Y {
-			t.Errorf("index %d: expected Y %d, got %d", k, expected.r, result)
+			t.Errorf("index %d: expected Y %f, got %f", k, expected.r, result)
 		}
 	}
 }
@@ -252,35 +255,35 @@ func TestVertices(t *testing.T) {
 		a   H
 		v   []F
 	}{
-		{MakeLayout(10, image.Point{0, 0}, OrientationPointy), H{0, 0},
+		{MakeLayout(F{10, 10}, F{0, 0}, OrientationPointy), H{0, 0},
 			[]F{
 				{8.6603, 5}, {0, 10}, {-8.6603, 5},
 				{-8.6603, -5}, {0, -10}, {8.6603, -5},
 				{0, 0},
 			},
 		},
-		{MakeLayout(20, image.Point{0, 0}, OrientationPointy), H{0, 0},
+		{MakeLayout(F{20, 20}, F{0, 0}, OrientationPointy), H{0, 0},
 			[]F{
 				{17.3205, 10}, {0, 20}, {-17.3205, 10},
 				{-17.3205, -10}, {0, -20}, {17.3205, -10},
 				{0, 0},
 			},
 		},
-		{MakeLayout(10, image.Point{0, 0}, OrientationFlat), H{3, -2},
+		{MakeLayout(F{10, 10}, F{0, 0}, OrientationFlat), H{3, -2},
 			[]F{
 				{55, -8.6603}, {50, 0}, {40, 0},
 				{35, -8.6603}, {40, -17.3205}, {50, -17.3205},
 				{45, -8.6603},
 			},
 		},
-		{MakeLayout(10, image.Point{0, 0}, OrientationFlat), H{3, -1},
+		{MakeLayout(F{10, 10}, F{0, 0}, OrientationFlat), H{3, -1},
 			[]F{
 				{55, 8.6603}, {50, 17.3205}, {40, 17.3205},
 				{35, 8.6603}, {40, 0}, {50, 0},
 				{45, 8.6603},
 			},
 		},
-		{MakeLayout(20, image.Point{40, 40}, OrientationPointy), H{4, 6},
+		{MakeLayout(F{20, 20}, F{40, 40}, OrientationPointy), H{4, 6},
 			[]F{
 				{299.8076, 230}, {282.4871, 240}, {265.1666, 230},
 				{265.1666, 210}, {282.4871, 200}, {299.8076, 210},
@@ -306,12 +309,12 @@ func TestVertices(t *testing.T) {
 		a, b   H
 		va, vb int
 	}{
-		{MakeLayout(32, image.Point{}, OrientationPointy), H{0, 0}, H{1, 0}, 0, 2},
-		{MakeLayout(32, image.Point{}, OrientationPointy), H{1, 0}, H{2, 0}, 0, 2},
-		{MakeLayout(32, image.Point{}, OrientationPointy), H{2, 0}, H{3, 0}, 0, 2},
-		{MakeLayout(32, image.Point{}, OrientationFlat), H{0, 0}, H{1, 0}, 0, 4},
-		{MakeLayout(32, image.Point{}, OrientationFlat), H{1, 0}, H{2, 0}, 0, 4},
-		{MakeLayout(32, image.Point{}, OrientationFlat), H{2, 0}, H{3, 0}, 0, 4},
+		{MakeLayout(F{32, 32}, F{}, OrientationPointy), H{0, 0}, H{1, 0}, 0, 2},
+		{MakeLayout(F{32, 32}, F{}, OrientationPointy), H{1, 0}, H{2, 0}, 0, 2},
+		{MakeLayout(F{32, 32}, F{}, OrientationPointy), H{2, 0}, H{3, 0}, 0, 2},
+		{MakeLayout(F{32, 32}, F{}, OrientationFlat), H{0, 0}, H{1, 0}, 0, 4},
+		{MakeLayout(F{32, 32}, F{}, OrientationFlat), H{1, 0}, H{2, 0}, 0, 4},
+		{MakeLayout(F{32, 32}, F{}, OrientationFlat), H{2, 0}, H{3, 0}, 0, 4},
 	}
 
 	for tc, params := range plan2 {
@@ -331,29 +334,29 @@ func TestVertices(t *testing.T) {
 // I need all features to be fast for a game engine.
 // needs definition of fast.
 // rational, these functions will be invoked frequently as part of calculating the game.
-func BenchmarkScreenToHex(b *testing.B) {
-	layout := MakeLayout(64, image.Point{}, OrientationPointy)
+func BenchmarkScreenToHexFloat(b *testing.B) {
+	layout := MakeLayout(F{64, 64}, F{}, OrientationPointy)
 	for h := 0; h < b.N; h++ {
-		layout.HexFor(image.Point{h, h})
+		layout.HexFor(F{float64(h), float64(h)})
 	}
 }
 
 func BenchmarkScreenRing(b *testing.B) {
-	layout := MakeLayout(64, image.Point{}, OrientationPointy)
+	layout := MakeLayout(F{64, 64}, F{}, OrientationPointy)
 	for h := 0; h < b.N; h++ {
 		layout.RingFor(H{h, h}, 512)
 	}
 }
 
 func BenchmarkScreenArea(b *testing.B) {
-	layout := MakeLayout(64, image.Point{}, OrientationPointy)
+	layout := MakeLayout(F{64, 64}, F{}, OrientationPointy)
 	for h := 0; h < b.N; h++ {
 		layout.AreaFor(H{h, h}, 512)
 	}
 }
 
-func BenchmarkHexToScreen(b *testing.B) {
-	layout := MakeLayout(64, image.Point{}, OrientationPointy)
+func BenchmarkHexToScreenFloat(b *testing.B) {
+	layout := MakeLayout(F{64, 64}, F{}, OrientationPointy)
 	for h := 0; h < b.N; h++ {
 		layout.CenterFor(H{h, h})
 	}
